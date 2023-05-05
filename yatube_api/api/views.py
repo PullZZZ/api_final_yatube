@@ -2,9 +2,22 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, mixins, filters
 from rest_framework.pagination import LimitOffsetPagination
 from posts.models import Post, Group
-from .serializers import PostSerializer, GroupSerializer, CommentSerializer
-from .serializers import FollowSerializer
+from .serializers import (
+    PostSerializer,
+    GroupSerializer,
+    CommentSerializer,
+    FollowSerializer
+)
 from .permissions import IsAuthorOrReadOnly
+
+
+class CreateListViewSet(mixins.CreateModelMixin,
+                        mixins.ListModelMixin,
+                        viewsets.GenericViewSet):
+    """
+    A viewset that provides default `create()` and `list()` actions.
+    """
+    pass
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -29,19 +42,13 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         post = self.get_post()
-        return post.comments
+        return post.comments.all()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user, post=self.get_post())
 
     def get_post(self):
         return get_object_or_404(Post, pk=self.kwargs.get('post_id'))
-
-
-class CreateListViewSet(mixins.CreateModelMixin,
-                        mixins.ListModelMixin,
-                        viewsets.GenericViewSet):
-    pass
 
 
 class FollowViewSet(CreateListViewSet):
@@ -53,4 +60,4 @@ class FollowViewSet(CreateListViewSet):
         return self.request.user.follower
 
     def perform_create(self, serializer):
-        pass
+        serializer.save(user=self.request.user)
